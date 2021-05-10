@@ -1,49 +1,33 @@
-// Import dependencies
-const express = require('express');
-const bodyParser = require('body-parser');
-const cors = require('cors');
-const path = require('path');
-
-// Create a new express application named 'app'
+const express = require("express");
+const mongoose = require("mongoose");
+const bodyParser = require("body-parser");
+const passport = require("passport");
+const users = require("./routes/api/users");
 const app = express();
-
-// Set our backend port to be either an environment variable or port 5000
-const port = process.env.PORT || 5000;
-
-// This application level middleware prints incoming requests to the servers console, useful to see incoming requests
-app.use((req, res, next) => {
-    console.log(`Request_Endpoint: ${req.method} ${req.url}`);
-    next();
-});
-
-// Configure the bodyParser middleware
+// Bodyparser middleware
+app.use(
+  bodyParser.urlencoded({
+    extended: false
+  })
+);
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({
-    extended: true
-}));
+// DB Config
+const db = require("./config/keys").mongoURI;
+// Connect to MongoDB
+mongoose
+  .connect(
+    db,
+    { useNewUrlParser: true }
+  )
+  .then(() => console.log("MongoDB successfully connected"))
+  .catch(err => console.log(err));
 
-// Configure the CORs middleware
-app.use(cors());
+  // Passport middleware
+app.use(passport.initialize());
+// Passport config
+require("./config/passport")(passport);
+// Routes
+app.use("/api/users", users);
 
-const api = require('./routes/routes');
-
-app.use('/api/v1/',api);
-
-// This middleware informs the express application to serve our compiled React files
-if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging') {
-    app.use(express.static(path.join(__dirname, 'client/build')));
-
-    app.get('*', function (req, res) {
-        res.sendFile(path.join(__dirname, 'client/build', 'index.html'));
-    });
-};
-
-// Catch any bad requests
-app.get('*', (req, res) => {
-    res.status(200).json({
-        msg: 'Catch All'
-    });
-});
-
-// Configure our server to listen on the port defiend by our port variable
-app.listen(port, () => console.log(`BACK_END_SERVICE_PORT: ${port}`));
+const port = process.env.PORT || 5000; // process.env.port is Heroku's port if you choose to deploy the app there
+app.listen(port, () => console.log(`Server up and running on port ${port} !`));
